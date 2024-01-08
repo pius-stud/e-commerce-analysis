@@ -1,0 +1,54 @@
+version: "3.7"
+
+services:
+  mongo:
+    image: mongo:3.6
+    hostname: mongodb
+    container_name: mongodb
+    ports:
+      - "27019:27017"
+    volumes:
+      - "./mongo/db:/data/db"
+    #environment:
+    #  MONGO_INITDB_ROOT_USERNAME: "user"
+    #  MONGO_INITDB_ROOT_PASSWORD: "password"
+    networks:
+      - flightnet
+
+  grafana:
+    build:
+      context: ./grafana
+      dockerfile: Dockerfile
+    image: grafana-mongodb-source:v1
+    container_name: grafana
+    ports:
+      - "3333:3000"
+    depends_on:
+      - "mongo"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "password"
+      GF_DEFAULT_APP_MODE: "development"
+      GF_ALLOW_LOADING_UNSIGNED_PLUGINS: "grafana-mongodb-datasource"
+    networks:
+      - flightnet
+
+  spark:
+    image: jupyter/all-spark-notebook
+    container_name: pyspark
+    ports:
+      - "4041:4040"
+      - "8889:8888"
+    depends_on:
+      - "mongo"
+    volumes:
+      - ./spark/work:/home/jovyan/work
+    networks:
+      - flightnet
+
+networks:
+  flightnet:
+    name: flightnet
+    driver: bridge
